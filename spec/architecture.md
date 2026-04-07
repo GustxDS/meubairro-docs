@@ -83,7 +83,7 @@ O projeto utiliza **dois repositórios separados**:
 
 ```
 meubairro/    → Frontend (React Native + Expo)
-meu-bairro-api/    → Backend (Node.js + Drizzle + PostgreSQL)
+meubairro-backend/    → Backend (Node.js + Drizzle + PostgreSQL)
 ```
 
 ### Justificativa
@@ -134,10 +134,10 @@ meubairro/
 
 ---
 
-### 4.2 Backend (`meu-bairro-api/`)
+### 4.2 Backend (`meubairro-backend/`)
 
 ```
-meu-bairro-api/
+meubairro-backend/
 ├── src/
 │   ├── routes/                  # Definição de rotas por recurso
 │   │   ├── auth.ts
@@ -343,7 +343,7 @@ Banco:    PostgreSQL local
 
 ### 9.2 Variáveis de Ambiente
 
-**Backend (`meu-bairro-api/.env`)**
+**Backend (`meubairro-backend/.env`)**
 
 ```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/meubairro

@@ -226,8 +226,8 @@ Each new action must be handled in both frontend listeners (invalidation and res
 
 | Gap | Priority | Notes |
 |-----|----------|-------|
-| Frontend notification listener | High | Missing `addNotificationReceivedListener` and background task |
-| Visible push notifications | Medium | `_contentAvailable: true` only triggers background fetch; no user-visible alert |
+| FCM + APNs credentials | Critical | Required for production builds; dev push already works |
+| `eas.json` + projectId setup | High | `eas init` needed in `app.config.js` |
 | Push analytics/metrics | Low | No tracking of delivery success/failure rates |
 | Topic-based subscriptions | Low | Current per-token approach works; no need for Expo topics |
-| Scheduled/notification categories | Low | Future: Android notification channels, iOS categories |
+| Notification preferences | Low | Future: per-user opt-in/out for certain push types |
