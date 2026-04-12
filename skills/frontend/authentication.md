@@ -93,7 +93,7 @@ Wraps the entire app via `<AuthProvider>` in `app/_layout.tsx`.
 | Method | Description |
 |--------|-------------|
 | `login(email, password)` | POST /auth/login → saves both tokens → calls fetchUser |
-| `register(email, password)` | POST /auth/register → saves both tokens → sets user state |
+| `register(email, password, name)` | POST /auth/register → saves both tokens → sets user state |
 | `logout()` | Deletes push token from backend → revokes refresh token → clears storage → nulls state |
 | `refreshUser()` | Re-fetches GET /auth/me to sync user state (e.g. after joining a neighborhood) |
 
@@ -115,6 +115,29 @@ Sentry.setUser({ id: data.id, email: data.email });
 Sentry.setUser(null);
 ```
 
+### Push token lifecycle
+
+The auth context manages the full push notification token lifecycle:
+
+```ts
+// On login — registers push token when user has a neighborhood
+useEffect(() => {
+  if (user?.neighborhood_id) {
+    registerForPushNotifications();
+    // registerForPushNotifications() → gets Expo push token
+    // → POST /api/devices/token { expoPushToken, platform }
+    // → stores token in MMKV ('expo_push_token')
+  }
+}, [user?.neighborhood_id]);
+
+// On logout — cleans up push token before clearing auth
+const expoToken = storage.getString('expo_push_token');
+if (expoToken) {
+  await api.delete('/devices/token', { data: { expoPushToken: expoToken } });
+  storage.remove('expo_push_token');
+}
+```
+
 ---
 
 ## Post-Login Routing (`app/_layout.tsx`)
@@ -131,7 +154,7 @@ token exists + user loaded:
   ├── no neighborhood_id
   │     → router.replace('/(onboarding)')
   └── neighborhood_id exists (active member)
-        → router.replace('/(app)/status')
+        → router.replace('/(app)/(tabs)/status')
 ```
 
 The splash screen stays visible until `isLoading` is false (both font load and auth check complete).

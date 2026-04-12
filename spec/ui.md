@@ -26,28 +26,38 @@ aliases: [Frontend UI, UI Spec, Frontend Components Spec]
 
 ```
 app/
-├── _layout.tsx                  # Root Layout — route decision logic
-├── index.tsx                    # Splash / Redirect
+├── _layout.tsx                       # Root Layout — auth guard, Sentry, ErrorBoundary, QueryClient
+├── index.tsx                         # Splash / Redirect
 ├── (auth)/
+│   ├── _layout.tsx                   # Stack navigator
 │   ├── login.tsx
 │   └── register.tsx
 ├── (onboarding)/
-│   ├── index.tsx                # Create or Join neighborhood
+│   ├── _layout.tsx                   # Stack navigator
+│   ├── index.tsx                     # Create or Join neighborhood
 │   ├── create-neighborhood.tsx
 │   ├── join-by-code.tsx
 │   └── pending-approval.tsx
 └── (app)/
-    ├── _layout.tsx              # Tab Navigator (4 tabs)
-    ├── status/index.tsx         # Status do Bairro (main tab)
-    ├── notices/
-    │   ├── index.tsx
-    │   └── create.tsx
-    ├── business/
-    │   ├── index.tsx
-    │   └── create.tsx
-    └── profile/
-        ├── index.tsx
-        └── members.tsx          # Admin/Superadmin only
+    ├── _layout.tsx                   # Stack — notification handlers, offline banner
+    ├── notifications/index.tsx       # Notification history screen
+    └── (tabs)/
+        ├── _layout.tsx               # Tab Navigator (4 tabs)
+        ├── status/
+        │   ├── _layout.tsx
+        │   └── index.tsx             # Status do Bairro
+        ├── notices/
+        │   ├── _layout.tsx
+        │   ├── index.tsx
+        │   └── create.tsx
+        ├── business/
+        │   ├── _layout.tsx
+        │   ├── index.tsx
+        │   └── create.tsx
+        └── profile/
+            ├── _layout.tsx
+            ├── index.tsx
+            └── members.tsx           # Admin/Superadmin only
 ```
 
 ### Root Layout Decision Logic
@@ -56,12 +66,19 @@ app/
 No token          → (auth)/login
 Token + no bairro → (onboarding)/index
 Token + pending   → (onboarding)/pending-approval
-Token + active    → (app)/status
+Token + active    → (app)/(tabs)/status
 ```
 
 Determined by calling `GET /api/auth/me` on app startup.
 
-### Tab Navigator (4 tabs)
+### App Layout (`app/(app)/_layout.tsx`)
+
+Stack navigator wrapping the tabs + notifications screen. Handles:
+- Push notification foreground listener (cache invalidation by action type)
+- Notification tap listener (navigates to relevant tab)
+- Offline banner (`useNetInfo` → displays "Sem conexão com a internet")
+
+### Tab Navigator (`app/(app)/(tabs)/_layout.tsx`)
 
 | Tab      | Icon       | Screen              |
 |----------|------------|---------------------|
@@ -76,11 +93,14 @@ Determined by calling `GET /api/auth/me` on app startup.
 
 ```
 components/
-├── ui/      # RNR base components — never modify directly
-└── custom/  # Project-specific components
+├── ui/           # RNR base components — never modify directly
+│   └── index.ts  # barrel: Badge, Button, Card, Input, Separator, Text
+├── custom/       # Project-specific components
+│   └── index.ts  # barrel: Header, PostCard, StatusCard, NotificationBell…
+└── index.ts      # root barrel (re-exports ui + custom)
 ```
 
-Always import base primitives from `~/components/ui/`. If custom behavior is needed, wrap — don't modify RNR files.
+Import from barrels: `import { Button, Text } from '@/components/ui'` or `import { Header, PostCard } from '@/components/custom'`. If custom behavior is needed, wrap — don't modify RNR files.
 
 ---
 
@@ -262,6 +282,52 @@ interface PendingBannerProps {
 
 ---
 
+### NotificationBell
+
+Bell icon with unread badge, used in screen headers.
+
+```tsx
+// No props — reads unread count from useUnreadCount() hook
+// Navigates to /(app)/notifications on tap
+// Badge capped at 99+
+```
+
+---
+
+### ImagePickerField
+
+Gallery picker with image preview and remove button.
+
+```tsx
+type ImagePickerFieldProps = {
+  uri: string | null;
+  onPick: () => void;
+  onRemove: () => void;
+};
+```
+
+- Empty state: dashed border + "Adicionar foto" placeholder
+- With image: full preview + X button overlay to remove
+
+---
+
+### CreateScreenLayout
+
+Reusable layout wrapper for create/edit form screens.
+
+```tsx
+type CreateScreenLayoutProps = {
+  title: string;
+  children: React.ReactNode;
+};
+```
+
+- SafeAreaView + KeyboardAvoidingView + ScrollView
+- Back button + heading title
+- Standard padding and gap
+
+---
+
 ## Design System (NativeWind)
 
 ### Color Palette
@@ -363,8 +429,9 @@ useMutation({
 
 1. Create `components/custom/YourComponent.tsx`
 2. Define TypeScript interface for all props
-3. Import base primitives from `~/components/ui/`
+3. Import base primitives from `'../ui'` (relative sub-barrel)
 4. Use NativeWind classes for all styling
 5. Follow color palette and spacing conventions
 6. Handle all states: loading, error, empty, disabled
 7. One responsibility per component
+8. Export from `components/custom/index.ts` barrel

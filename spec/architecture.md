@@ -21,12 +21,15 @@ Este documento descreve a arquitetura completa do projeto Meu Bairro, incluindo 
 | **Expo** (`54.0.x`)          | Framework base. Gerencia plugins nativos, build OTA e ferramentas de desenvolvimento.|
 | **Expo Router**              | Cria o mapeamento das rotas baseadas na estrutura das pastas filhas dentro de `app/`. |
 | **NativeWind & TailwindCSS** | Processador bridge das propriedades de estilização em classes nativas aplicáveis. |
-| **Zustand**                  | Biblioteca headless leve que carrega seu estado de Login globalmente no Contexto. |
+| **Zustand + Immer**          | Estado local persistido (permissions store) com mutações imutáveis via MMKV.      |
+| **MMKV** (`react-native-mmkv`)| Storage síncrono AES-256 para preferências e flags (nunca tokens).               |
 | **Lucide-React-Native**      | Motor de vetores iconográficos da UI moderna injetada nos cabeçalhos e status.    |
 | **React Hook Form**          | Gerencia a lógica profunda de mutação do forms e feedback dos erros UX em tempo real.|
 | **Zod / @hookform**          | Declara o Schema restrito que valida todo input de formulário dinamicamente antes do fetch.|
-| **@tanstack/react-query**    | Responsável futuro/integração para gerenciar transições e otimismo do estado remoto.|
+| **@tanstack/react-query** v5 | Gerencia estado remoto: queries, mutations, cache, optimistic updates e invalidação.|
 | **Axios**                    | O Wrapper injetor que impulsiona os requests disparando tokens salvos no SecureStore. |
+| **@sentry/react-native**    | Captura exceções em produção, rastreamento de usuário e performance tracing (20%). |
+| **expo-notifications**       | Push notifications (Expo push token), handlers foreground/tap, canais Android.     |
 | **React Native Reanimated**  | Gerencia o frame-loop permitindo micro-animações visuais fluidas à 60FPS.         |
 | **Expo Secure Store**        | Motor criptografado para preservar seus tokens de sessão persistindo reinícios.   |
 | **Clsx & Tailwind-Merge**    | Utilitários agnósticos controlando condicionais visíveis fundindo blocos no Tailwind.|
@@ -68,8 +71,10 @@ Suporte a tipos avançados: UUID, JSONB, timestamps com timezone.
 | Serviço            | Finalidade                                |
 |--------------------|-------------------------------------------|
 | BrasilAPI          | Consulta de CEP e dados de endereço       |
+| Expo Push Service  | Envio de push notifications via expo-server-sdk |
+| Sentry             | Error tracking e performance monitoring em produção |
 
-Sem necessidade de autenticação para uso.
+BrasilAPI não requer autenticação. Expo Push usa o projectId do EAS. Sentry usa DSN via variável de ambiente.
 
 ---
 
@@ -107,32 +112,60 @@ meubairro-backend/    → Backend (Node.js + Drizzle + PostgreSQL)
 
 ```
 meubairro/
-├── app/                         # Expo Router (telas e navegação)
-│   ├── _layout.tsx              # Root Layout
-│   ├── index.tsx                # Splash / Redirect
-│   ├── (auth)/                  # Telas públicas
-│   ├── (onboarding)/            # Fluxo de associação ao bairro
-│   └── (app)/                   # Telas autenticadas (tabs)
+├── app/                              # Expo Router (telas e navegação)
+│   ├── _layout.tsx                   # Root Layout (auth guard, Sentry, ErrorBoundary, QueryClient)
+│   ├── index.tsx                     # Splash / Redirect
+│   ├── (auth)/                       # Telas públicas (login, register)
+│   ├── (onboarding)/                 # Fluxo de associação ao bairro
+│   └── (app)/                        # Área autenticada
+│       ├── _layout.tsx               # Stack (notificações, offline banner)
+│       ├── notifications/index.tsx   # Histórico de notificações
+│       └── (tabs)/                   # Tab navigator (4 tabs)
+│           ├── _layout.tsx           # Tab navigator config
+│           ├── status/index.tsx
+│           ├── notices/              # index.tsx + create.tsx
+│           ├── business/             # index.tsx + create.tsx
+│           └── profile/              # index.tsx + members.tsx
 │
-├── components/                  # Componentes reutilizáveis
-│   ├── ui/                      # Componentes RNR (copiados)
-│   └── custom/                  # Componentes do projeto
+├── components/                       # Componentes reutilizáveis
+│   ├── ui/                           # Componentes RNR (copiados)
+│   │   └── index.ts                  # barrel: Button, Input, Card, Badge, Text, Separator
+│   ├── custom/                       # Componentes do projeto
+│   │   └── index.ts                  # barrel: Header, PostCard, StatusCard, NotificationBell…
+│   └── index.ts                      # root barrel (re-exports ui + custom)
 │
-├── lib/                         # Utilitários e configurações
-│   ├── api.ts                   # Cliente HTTP centralizado
-│   ├── auth.ts                  # Helpers de autenticação
-│   └── constants.ts             # Constantes do app
+├── lib/                              # Utilitários e configurações
+│   ├── api.ts                        # Axios instance + token helpers + image upload
+│   ├── constants.ts                  # STATUS_TYPES, NOTICE_CATEGORIES, ROLE_LEVEL, COLORS
+│   ├── utils.ts                      # cn() (clsx+twMerge), canDeletePost()
+│   ├── logger.ts                     # Structured logger (dev console / prod Sentry)
+│   ├── toast.ts                      # Native toast via burnt
+│   ├── storage.ts                    # MMKV instance + clientStorage adapter
+│   ├── animations.ts                 # Reanimated spring/timing presets
+│   └── index.ts                      # barrel: re-exports all lib modules
 │
-├── hooks/                       # Custom hooks
+├── hooks/                            # Custom hooks
+│   ├── use-neighborhood.ts           # Neighborhood data query
+│   ├── use-create-notice.ts          # Notice form logic + mutation
+│   ├── use-create-business.ts        # Business form logic + mutation
+│   ├── use-notifications.ts          # useNotifications, useUnreadCount, useMarkAllRead
+│   ├── use-net-info.ts               # Network connectivity state
+│   ├── use-permissions-store.ts      # Zustand + Immer + MMKV persistence
+│   ├── useImagePicker.ts             # Image selection + upload
+│   ├── usePushNotifications.ts       # Push token registration
+│   └── index.ts                      # barrel: re-exports all hooks
 │
-├── contexts/                    # React Contexts (auth, bairro)
+├── contexts/                         # React Contexts
+│   ├── auth-context.tsx              # Auth state, Axios interceptor, push token lifecycle, Sentry
+│   └── index.ts                      # barrel
 │
-├── types/                       # Tipos TypeScript compartilhados
+├── types/                            # Tipos TypeScript compartilhados
+│   └── index.ts                      # User, Post, Status, AppNotification, ApiError…
 │
-├── assets/                      # Imagens, fontes, ícones
+├── assets/                           # Imagens, fontes, ícones
 │
-├── tailwind.config.js           # Configuração NativeWind
-├── app.json                     # Configuração Expo
+├── tailwind.config.js                # Configuração NativeWind
+├── app.config.js                     # Configuração Expo (Sentry, notifications, EAS)
 ├── tsconfig.json
 └── package.json
 ```
@@ -187,27 +220,31 @@ meubairro-backend/
 │              Mobile App                  │
 │  React Native + Expo + NativeWind + RNR  │
 │              (TypeScript)                │
-└──────────────────┬───────────────────────┘
-                   │ HTTP (REST / JSON)
-                   │ Authorization: Bearer <token>
-┌──────────────────▼───────────────────────┐
+└──────────┬───────────────┬───────────────┘
+           │               │ Push Notifications
+           │ HTTP (REST)   │ (Expo Push Service)
+           │ Bearer <JWT>  │
+┌──────────▼───────────────▼───────────────┐
 │              Backend API                 │
 │  Node.js + TypeScript                    │
 │  ┌─────────────────────────────────────┐ │
 │  │ Middleware (Auth) → Routes → Services│ │
+│  │         pushService (expo-server-sdk)│ │
+│  │         cron (node-cron)             │ │
 │  └─────────────────────────────────────┘ │
 └──────────────────┬───────────────────────┘
                    │ SQL (Drizzle ORM)
 ┌──────────────────▼───────────────────────┐
 │              PostgreSQL                  │
 │  users, neighborhoods, posts, status,    │
-│  confirmations, join_requests            │
+│  confirmations, join_requests,           │
+│  user_devices, refresh_tokens            │
 └──────────────────────────────────────────┘
 
-         ┌──────────────────┐
-         │   BrasilAPI      │
-         │  (CEP / Endereço)│
-         └──────────────────┘
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │  BrasilAPI   │  │    Sentry    │  │  Expo Push   │
+  │ (CEP lookup) │  │ (error track)│  │  Service     │
+  └──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 ---
@@ -328,8 +365,12 @@ Produção:        https://<dominio>/api
 ### 8.2 Frontend
 
 - Interceptor centralizado no cliente HTTP para tratar erros
-- Token expirado (401) → redireciona para login
-- Erros de rede → exibe mensagem de reconexão
+- Token expirado (401) → silent refresh via refresh token → retry automático
+- Refresh expirado → clears tokens → redireciona para login
+- `react-error-boundary` no root layout captura erros de render → Sentry
+- `lib/logger.ts` — dev: console, prod: `Sentry.captureException()`
+- `lib/toast.ts` — feedback visual via `burnt` (success, error, info)
+- `hooks/use-net-info.ts` — banner offline quando `!isConnected`
 - Erros de validação → exibe feedback inline nos formulários
 
 ---
@@ -360,6 +401,7 @@ PORT=3000
 
 ```env
 EXPO_PUBLIC_API_URL=http://localhost:3000/api
+SENTRY_DSN=https://<key>@sentry.io/<project>
 ```
 
 ---
@@ -433,10 +475,11 @@ Quando necessário, migrar para armazenamento externo (S3, Cloudinary) requer ap
 
 ## 12. Possíveis Evoluções Futuras
 
-- WebSocket para comunicação em tempo real
 - Cache com Redis
 - CI/CD para build e deploy automatizado
 - Containerização com Docker
 - Monorepo com compartilhamento de tipos (quando a complexidade justificar)
 - Rate limiting e proteção contra abuso
 - Migração de uploads para S3/Cloudinary
+
+> **Nota:** Push notifications já substituíram a necessidade de WebSockets para o MVP. Updates em tempo real funcionam via invalidação de cache React Query disparada por notificações push.

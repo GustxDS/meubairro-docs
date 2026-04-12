@@ -240,6 +240,52 @@ interface HeaderProps {
 
 ---
 
+### NotificationBell
+
+Bell icon with unread badge, used as `rightElement` in `Header`.
+
+```tsx
+// No props — internally uses useUnreadCount() hook
+// Navigates to /(app)/notifications on tap
+// Badge capped at 99+, red circle with white text
+```
+
+---
+
+### ImagePickerField
+
+Gallery picker with image preview and remove button.
+
+```tsx
+type ImagePickerFieldProps = {
+  uri: string | null;     // local image URI or null
+  onPick: () => void;     // triggers image picker
+  onRemove: () => void;   // clears selected image
+};
+```
+
+- Empty state: dashed border + ImagePlus icon + "Adicionar foto"
+- With image: full preview (`expo-image`) + X button overlay
+
+---
+
+### CreateScreenLayout
+
+Reusable wrapper for create/edit form screens. Handles SafeArea, keyboard avoidance, and back navigation.
+
+```tsx
+type CreateScreenLayoutProps = {
+  title: string;
+  children: React.ReactNode;
+};
+```
+
+- SafeAreaView + KeyboardAvoidingView + ScrollView
+- "← Voltar" ghost button + heading title
+- Standard padding (`px-4 py-6`) and `gap-6` between children
+
+---
+
 ## Design System (NativeWind Theme)
 
 ### Color Palette
@@ -298,11 +344,12 @@ Warning:       amber-500
 
 ## Creating a New Component — Checklist
 
-1. Create file in `components/custom/YourComponent.tsx`
+1. Create file in `components/custom/your-component.tsx`
 2. Define a TypeScript interface for all props
 3. Import base primitives from `'../ui'` (relative sub-barrel)
 4. Use NativeWind classes (Tailwind) for all styling
 5. Follow the color palette and spacing conventions above
 6. Handle all visual states (loading, error, disabled, empty)
-7. Export as default or named export consistently
-8. Keep the component focused — one responsibility per component
+7. Use named exports consistently
+8. **Add export to `components/custom/index.ts` barrel**
+9. Keep the component focused — one responsibility per component

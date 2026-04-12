@@ -21,30 +21,41 @@ aliases: [Navigation Skill, Expo Router Skill, Routing Skill]
 
 ```
 app/
-├── _layout.tsx                  ← Root layout: provider tree + auth guard
-├── index.tsx                    ← Splash/initial redirect
+├── _layout.tsx                       ← Root layout: provider tree + auth guard + Sentry + ErrorBoundary
+├── index.tsx                         ← Splash/initial redirect
 ├── (auth)/
-│   ├── _layout.tsx              ← Stack navigator for auth screens
+│   ├── _layout.tsx                   ← Stack navigator for auth screens
 │   ├── login.tsx
 │   └── register.tsx
 ├── (onboarding)/
-│   ├── _layout.tsx              ← Stack navigator for onboarding
-│   ├── index.tsx                ← Choose: create or join neighborhood
+│   ├── _layout.tsx                   ← Stack navigator for onboarding
+│   ├── index.tsx                     ← Choose: create or join neighborhood
 │   ├── create-neighborhood.tsx
 │   ├── join-by-code.tsx
 │   └── pending-approval.tsx
 └── (app)/
-    ├── _layout.tsx              ← Tab navigator (4 tabs)
-    ├── status/index.tsx
-    ├── notices/index.tsx
-    ├── notices/create.tsx
-    ├── business/index.tsx
-    ├── business/create.tsx
-    ├── profile/index.tsx
-    └── profile/members.tsx
+    ├── _layout.tsx                   ← Stack: notification handlers + offline banner
+    ├── notifications/index.tsx       ← Notification history screen
+    └── (tabs)/
+        ├── _layout.tsx               ← Tab navigator (4 tabs)
+        ├── status/
+        │   ├── _layout.tsx
+        │   └── index.tsx
+        ├── notices/
+        │   ├── _layout.tsx
+        │   ├── index.tsx
+        │   └── create.tsx
+        ├── business/
+        │   ├── _layout.tsx
+        │   ├── index.tsx
+        │   └── create.tsx
+        └── profile/
+            ├── _layout.tsx
+            ├── index.tsx
+            └── members.tsx
 ```
 
-Route groups in parentheses (e.g. `(auth)`) are logical separators — they don't appear in the URL. Each `_layout.tsx` defines the navigator for that group.
+Route groups in parentheses (e.g. `(auth)`, `(tabs)`) are logical separators — they don't appear in the URL. Each `_layout.tsx` defines the navigator for that group.
 
 ---
 
@@ -70,7 +81,7 @@ useEffect(() => {
     } else if (!user.neighborhood_id) {
       if (!inOnboardingGroup) router.replace('/(onboarding)');
     } else {
-      if (inAuthGroup || inOnboardingGroup) router.replace('/(app)/status');
+      if (inAuthGroup || inOnboardingGroup) router.replace('/(app)/(tabs)/status');
     }
   }
 }, [token, user, isLoading, segments]);
@@ -83,9 +94,22 @@ useEffect(() => {
 
 ---
 
-## Tab Navigator (`app/(app)/_layout.tsx`)
+## App Layout (`app/(app)/_layout.tsx`)
 
-Four tabs, defined as `<Tabs.Screen>` entries. Each tab maps to a folder under `app/(app)/`.
+A `Stack` navigator that wraps the tab navigator and the notifications screen. Handles:
+
+- **Push notification foreground listener** — invalidates React Query cache based on `action`:
+  - `STATUS_EXPIRED` → invalidates `['status', neighborhoodId]` (silent — no banner/sound)
+  - `POST_CREATED` → invalidates `['notices']` or `['business']` based on `postType`
+  - Always invalidates `['notifications']` for badge updates
+- **Notification tap listener** — navigates to `/(app)/(tabs)/notices` or `/(app)/(tabs)/business`
+- **Offline banner** — renders "Sem conexão com a internet" bar when `!isConnected`
+
+---
+
+## Tab Navigator (`app/(app)/(tabs)/_layout.tsx`)
+
+Four tabs, defined as `<Tabs.Screen>` entries. Each tab maps to a folder under `app/(app)/(tabs)/`.
 
 | Tab | Folder | Icon |
 |-----|--------|------|
@@ -105,9 +129,10 @@ import { useRouter } from 'expo-router';
 
 const router = useRouter();
 
-router.push('/(app)/notices/create');  // push onto stack
-router.back();                          // go back
-router.replace('/(app)/status');        // replace (no back)
+router.push('/(app)/(tabs)/notices/create');  // push onto stack
+router.back();                                // go back
+router.replace('/(app)/(tabs)/status');       // replace (no back)
+router.push('/(app)/notifications');          // push notifications screen (outside tabs)
 ```
 
 Use `router.back()` after a successful form submission to return to the feed.
@@ -116,10 +141,10 @@ Use `router.back()` after a successful form submission to return to the feed.
 
 ## Adding a New Screen
 
-1. Create the file at the right path, e.g. `app/(app)/notices/[id].tsx` for a detail screen
-2. If it needs its own stack header, add a `<Stack.Screen>` entry in the parent `_layout.tsx`
-3. For admin-only screens (e.g. member management), check `user.role` and redirect if needed — the backend will still enforce the permission
-4. The tab navigator auto-discovers screens in `app/(app)/` — no registration needed for new routes under existing tabs
+1. **Inside tabs**: Create at `app/(app)/(tabs)/notices/[id].tsx`. The tab's `_layout.tsx` auto-discovers it.
+2. **Outside tabs** (e.g. full-screen modal): Create at `app/(app)/your-screen/index.tsx` and add a `<Stack.Screen>` in `app/(app)/_layout.tsx`.
+3. If it needs its own stack header, add a `<Stack.Screen>` entry in the parent `_layout.tsx`
+4. For admin-only screens, check `user.role` and redirect if needed — the backend still enforces the permission
 
 ---
 

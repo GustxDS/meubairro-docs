@@ -14,7 +14,7 @@ aliases: [Error Handling Skill, Logging Skill, Observability Skill]
 | Render errors | `react-error-boundary` + `ErrorFallback` | Thrown exceptions during React render |
 | Runtime errors | Sentry | All unhandled exceptions in production |
 | Logging | `lib/logger.ts` | Structured dev logs / prod error tracking |
-| User feedback | `lib/toast.ts` (burnt) | Success confirmations, API error messages |
+| User feedback | `lib/toast.ts` (`showToast`) | Success confirmations, API error messages |
 | Connectivity | `use-net-info.ts` | Offline state banner + mutation guard |
 
 ---
@@ -101,14 +101,17 @@ Never use `console.log/warn/error` directly — use `logger` so production error
 
 ## Toast Notifications (`lib/toast.ts`)
 
-Uses the `burnt` library for native toast on both iOS and Android.
+Wraps the `burnt` library for native toast on both iOS and Android.
 
 ```ts
-import toast from '@/lib/toast';
+import { showToast } from '@/lib/toast';
 
-toast.success('Aviso publicado!');
-toast.error('Erro ao criar aviso');
+showToast.success('Aviso publicado!');
+showToast.error('Erro ao criar aviso');
+showToast.info('Link copiado');
 ```
+
+**Available presets:** `success` (checkmark), `error` (red), `info` (neutral). All show for 3 seconds.
 
 **When to use toast:**
 - After a successful mutation (create, delete, approve)
@@ -123,7 +126,7 @@ toast.error('Erro ao criar aviso');
 const { isConnected } = useNetInfo();
 ```
 
-The tab layout (`app/(app)/_layout.tsx`) renders an offline banner at the top when `!isConnected`:
+The app layout (`app/(app)/_layout.tsx`) renders an offline banner at the top when `!isConnected`:
 
 ```tsx
 {!isConnected && (
@@ -171,6 +174,6 @@ onError: (err: ApiError) => {
 |------|------|
 | `app/_layout.tsx` | ErrorBoundary, Sentry init, Sentry.wrap |
 | `lib/logger.ts` | Structured logger (dev console / prod Sentry) |
-| `lib/toast.ts` | Toast helper via `burnt` |
+| `lib/toast.ts` | Toast helper (`showToast.success/error/info`) via `burnt` |
 | `hooks/use-net-info.ts` | Network connectivity hook |
 | `components/custom/error-fallback.tsx` | Fallback UI with retry button |

@@ -57,6 +57,7 @@ Query keys are arrays. Always include scoping identifiers to avoid cross-user ca
 | Negócios feed | `['business']` |
 | Status list | `['status', neighborhoodId]` |
 | Members list | `['members']` |
+| Notifications | `['notifications']` |
 
 ---
 
@@ -132,10 +133,27 @@ Notifications.addNotificationReceivedListener((notification) => {
       if (postType === 'negocio') queryClient.invalidateQueries({ queryKey: ['business'] });
       break;
   }
+  // Always refresh notification list so badge updates in real time
+  queryClient.invalidateQueries({ queryKey: ['notifications'] });
 });
 ```
 
 This is the primary real-time update mechanism — no WebSockets needed for the MVP.
+
+---
+
+## Dedicated Query Hooks
+
+Form logic and data queries are extracted into reusable hooks:
+
+| Hook | File | Key exports |
+|------|------|-------------|
+| `useNeighborhood` | `hooks/use-neighborhood.ts` | Neighborhood query |
+| `useNotifications` | `hooks/use-notifications.ts` | Notifications list query |
+| `useUnreadCount` | `hooks/use-notifications.ts` | Unread count (derived from notifications) |
+| `useMarkAllRead` | `hooks/use-notifications.ts` | Mutation: PATCH /notifications/read-all |
+| `useCreateNotice` | `hooks/use-create-notice.ts` | Full form state + mutation for notices |
+| `useCreateBusiness` | `hooks/use-create-business.ts` | Full form state + mutation for business |
 
 ---
 
@@ -175,6 +193,9 @@ if (isError) {
 | File | Role |
 |------|------|
 | `app/_layout.tsx` | QueryClient setup, AppState focus management |
-| `app/(app)/_layout.tsx` | Notification-triggered invalidation |
-| `hooks/use-neighborhood.ts` | Example query hook |
+| `app/(app)/_layout.tsx` | Notification-triggered cache invalidation |
+| `hooks/use-neighborhood.ts` | Neighborhood query hook |
+| `hooks/use-notifications.ts` | Notifications query + unread count + mark-all-read |
+| `hooks/use-create-notice.ts` | Notice form + mutation hook |
+| `hooks/use-create-business.ts` | Business form + mutation hook |
 | `lib/api.ts` | Axios instance used in all queryFns |

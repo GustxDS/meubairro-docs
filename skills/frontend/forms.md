@@ -15,13 +15,28 @@ aliases: [Forms Skill, Validation Skill, Form Skill]
 | `@hookform/resolvers/zod` | Connects Zod schema to RHF |
 | `zod` | Schema definition and validation |
 | `useImagePicker` hook | Image selection from device gallery |
+| `ImagePickerField` component | Image picker UI (preview + remove) |
+| `CreateScreenLayout` component | Reusable form screen wrapper (SafeArea + keyboard + back nav) |
 | `useMutation` (React Query) | API call with loading/error state |
+
+---
+
+## Form Architecture
+
+Form logic is **extracted into dedicated hooks** — screens are thin wrappers that compose the hook with UI components.
+
+| Hook | Screen | Purpose |
+|------|--------|---------|
+| `hooks/use-create-notice.ts` | `app/(app)/(tabs)/notices/create.tsx` | Notice creation (title, description, category, image, expiration) |
+| `hooks/use-create-business.ts` | `app/(app)/(tabs)/business/create.tsx` | Business listing (title, description, type, contact, image) |
+
+Each hook encapsulates: Zod schema, `useForm`, `useMutation`, image upload, error state, and returns everything the screen needs.
 
 ---
 
 ## Standard Form Pattern
 
-See `app/(app)/notices/create.tsx` as the canonical example.
+See `hooks/use-create-notice.ts` as the canonical example.
 
 ### 1. Define a Zod schema
 
@@ -114,12 +129,12 @@ The button is automatically disabled while `isLoading` is true.
 
 ## Image Upload
 
-Use the `useImagePicker` hook (`hooks/useImagePicker.ts`):
+### Hook: `useImagePicker` (`hooks/useImagePicker.ts`)
 
 ```ts
 const { pickImage, upload, isUploading, error: uploadError } = useImagePicker();
 
-// Pick from gallery
+// Pick from gallery (uses expo-image-picker, quality 0.8)
 const uri = await pickImage();
 if (uri) setLocalImageUri(uri);
 
@@ -129,6 +144,21 @@ if (!uploadedUrl) return; // upload failed, error already set
 ```
 
 `upload()` calls `POST /api/uploads` via `lib/api.ts`'s `uploadImage()` helper (multipart/form-data). Returns the server-side URL or `null` on failure.
+
+### Component: `ImagePickerField` (`components/custom/image-picker-field.tsx`)
+
+Wraps the image picker UX into a single component:
+
+```tsx
+<ImagePickerField
+  uri={localImageUri}
+  onPick={pickImage}                            // from useImagePicker
+  onRemove={() => setLocalImageUri(null)}
+/>
+```
+
+- Empty state: dashed border + "Adicionar foto" placeholder
+- With image: full preview via `expo-image` + X button to remove
 
 ---
 
@@ -189,8 +219,12 @@ function selectCategory(value: string) {
 
 | File | Role |
 |------|------|
-| `app/(app)/notices/create.tsx` | Aviso creation — canonical form example |
-| `app/(app)/business/create.tsx` | Negócio creation — includes contact + business_type |
+| `hooks/use-create-notice.ts` | Notice form hook (schema, mutation, image upload, expiration) |
+| `hooks/use-create-business.ts` | Business form hook (schema, mutation, image upload) |
+| `app/(app)/(tabs)/notices/create.tsx` | Notice creation screen (thin UI wrapper) |
+| `app/(app)/(tabs)/business/create.tsx` | Business creation screen (thin UI wrapper) |
 | `hooks/useImagePicker.ts` | Image pick + upload abstraction |
+| `components/custom/image-picker-field.tsx` | Image picker UI component |
+| `components/custom/create-screen-layout.tsx` | Reusable form screen layout |
 | `lib/api.ts` → `uploadImage()` | Multipart upload helper |
 | `components/ui/input.tsx` | Input with built-in error prop |

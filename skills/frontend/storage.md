@@ -77,19 +77,33 @@ storage.delete('onboarding_seen');
 
 MMKV is synchronous — no `await` needed. It's significantly faster than AsyncStorage.
 
+### `clientStorage` adapter
+
+`lib/storage.ts` also exports a `clientStorage` object with the standard `setItem`/`getItem`/`removeItem` interface. This is used by:
+
+- **Zustand persist middleware** — `use-permissions-store.ts` persists notification/location permission flags to MMKV via `createJSONStorage(() => clientStorage)`
+- Can also be used for React Query persistence if needed
+
+```ts
+import { clientStorage } from '@/lib/storage';
+
+// Standard interface: setItem(key, value), getItem(key), removeItem(key)
+```
+
 ---
 
 ## What Goes Where
 
-| Data | Storage Layer |
-|------|--------------|
-| JWT access token | SecureStore |
-| Refresh token | SecureStore |
-| User preferences | MMKV |
-| Onboarding flags | MMKV |
-| Lightweight cached responses | MMKV (if needed outside React Query) |
-| React Query cache | In-memory (React Query manages this) |
-| Images / files | Expo FileSystem (if needed) |
+| Data | Storage Layer | Key |
+|------|--------------|-----|
+| JWT access token | SecureStore | `auth_token` |
+| Refresh token | SecureStore | `refresh_token` |
+| Expo push token | MMKV | `expo_push_token` |
+| Permission flags | MMKV (Zustand persist) | `permissions-storage` |
+| User preferences | MMKV | varies |
+| Onboarding flags | MMKV | varies |
+| React Query cache | In-memory (React Query manages this) | — |
+| Images / files | Expo FileSystem (if needed) | — |
 
 ---
 
@@ -98,5 +112,7 @@ MMKV is synchronous — no `await` needed. It's significantly faster than AsyncS
 | File | Role |
 |------|------|
 | `lib/api.ts` | SecureStore helpers (saveToken, getToken, etc.) + web shim |
-| `lib/storage.ts` | MMKV instance export |
-| `contexts/auth-context.tsx` | Consumes token helpers from `lib/api.ts` |
+| `lib/storage.ts` | MMKV instance (`storage`) + standard adapter (`clientStorage`) |
+| `contexts/auth-context.tsx` | Consumes token helpers from `lib/api.ts` + manages push token in MMKV |
+| `hooks/use-permissions-store.ts` | Zustand store persisted to MMKV via `clientStorage` |
+| `hooks/usePushNotifications.ts` | Stores `expo_push_token` in MMKV after registration |

@@ -154,9 +154,34 @@ status_confirmations:
 
 ---
 
-## 13. Possíveis Evoluções Futuras
+## 13. Push Notifications Integration (Implementado)
+
+O sistema de status agora é integrado com push notifications:
+
+### Fluxo de expiração
+
+```
+node-cron (a cada minuto) → processExpiredStatuses()
+  → marca status expirados como active: false
+  → pushService.sendToNeighborhood(neighborhoodId, { action: 'STATUS_EXPIRED' })
+  → App recebe notificação silenciosa (sem banner/som)
+  → queryClient.invalidateQueries(['status', neighborhoodId])
+  → UI atualiza automaticamente
+```
+
+### Comportamento por ação
+
+| Action | Banner | Som | Cache invalidation |
+|--------|:------:|:---:|-------------------|
+| `STATUS_EXPIRED` | ✗ | ✗ | `['status', neighborhoodId]` |
+| `POST_CREATED` | ✓ | ✓ | `['notices']` ou `['business']` |
+
+Ambas as ações sempre invalidam `['notifications']` para atualizar o badge.
+
+---
+
+## 14. Possíveis Evoluções Futuras
 
 - adicionar novos tipos de status
 - permitir comentários vinculados ao status
 - exibir histórico de eventos
-- integração com notificações push
