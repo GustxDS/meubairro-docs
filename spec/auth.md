@@ -1,3 +1,8 @@
+---
+tags: [spec, auth, jwt, session, security, refresh-token]
+aliases: [Authentication, Login, JWT, Auth Spec]
+---
+
 # Authentication Specification
 
 ## 1. Visão Geral

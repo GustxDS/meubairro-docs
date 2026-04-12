@@ -1,6 +1,8 @@
 ---
 name: Backend API Routes
 description: Use when creating new REST API endpoints, adding middleware, implementing RBAC permission checks, or adding business logic to services in Meu Bairro
+tags: [skill, api, routes, backend, rbac, middleware, how-to]
+aliases: [API Routes Skill, Backend Skill, Routes Skill]
 ---
 
 # Backend API Routes — Meu Bairro
@@ -163,7 +165,6 @@ import { z } from 'zod';
 
 export const yourSchema = z.object({
   field: z.string().min(1).max(255),
-  // Add fields here
 });
 ```
 
@@ -229,7 +230,6 @@ type Role = "membro" | "admin" | "superadmin";
 ### Checking Role in a Route
 
 ```ts
-// Require admin or above
 router.put(
   '/members/:id/role',
   authMiddleware,
@@ -252,7 +252,6 @@ router.put(
 ```ts
 const ROLE_LEVEL = { membro: 1, admin: 2, superadmin: 3 };
 
-// Actor cannot act on someone at same or higher level
 if (ROLE_LEVEL[actor.role] <= ROLE_LEVEL[target.role]) {
   throw new AppError('Não pode agir sobre este usuário', 403, 'FORBIDDEN');
 }
@@ -261,7 +260,6 @@ if (ROLE_LEVEL[actor.role] <= ROLE_LEVEL[target.role]) {
 ### Superadmin Transfer (atomic)
 
 ```ts
-// Both updates must happen together
 await db.update(neighborhoodMembers).set({ role: 'admin' }).where(eq(...actor));
 await db.update(neighborhoodMembers).set({ role: 'superadmin' }).where(eq(...target));
 ```
@@ -276,7 +274,7 @@ await db.update(neighborhoodMembers).set({ role: 'superadmin' }).where(eq(...tar
 4. **All permission checks on the backend** — frontend only hides buttons, never enforces
 5. **Soft deletes everywhere** — use `set({ deleted_at: new Date() })`, filter with `isNull(deleted_at)`
 6. **One neighborhood per user** — always check membership before allowing content creation
-7. **Perform Graceful Shutdowns** — Ensure the express server and Drizzle DB connections are closed cleanly on SIGINT/SIGTERM.
+7. **Perform Graceful Shutdowns** — close the express server and Drizzle DB connections on SIGINT/SIGTERM
 
 ---
 

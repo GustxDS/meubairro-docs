@@ -1,3 +1,8 @@
+---
+tags: [spec, rbac, roles, permissions, auth]
+aliases: [Roles, RBAC, Permissions, Roles Spec]
+---
+
 # Roles and Permissions Specification
 
 ## 1. Visão Geral

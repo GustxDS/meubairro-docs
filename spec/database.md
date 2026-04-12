@@ -1,3 +1,8 @@
+---
+tags: [spec, database, schema, postgresql, drizzle, backend]
+aliases: [Database Schema, Database Spec, DB Schema]
+---
+
 # Database Specification — Meu Bairro
 
 ## 1. Visão Geral

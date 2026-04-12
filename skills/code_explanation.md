@@ -1,6 +1,8 @@
 ---
 name: Code Explanation
 description: Use whenever the user asks you to explain code you generated, justify a technical decision, review if something is ideal or modern, or walk through why you did something a certain way — applies to both frontend and backend code in Meu Bairro
+tags: [skill, meta, explanation, documentation]
+aliases: [Code Explanation, Explain Skill]
 ---
 
 # Code Explanation — Meu Bairro

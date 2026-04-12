@@ -1,3 +1,8 @@
+---
+tags: [spec, neighborhood, bairro, community, membership]
+aliases: [Neighborhoods, Bairro, Neighborhood Spec]
+---
+
 # Neighborhood (Bairro) Specification
 
 ## 1. Visão Geral

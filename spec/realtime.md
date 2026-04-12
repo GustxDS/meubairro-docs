@@ -1,3 +1,8 @@
+---
+tags: [spec, realtime, status, confirmations, social-proof]
+aliases: [Real-time Status, Status do Bairro, Realtime Spec]
+---
+
 # Realtime Status Specification
 
 ## 1. Visão Geral
@@ -69,7 +74,7 @@ Cada usuário pode interagir com um status através de uma confirmação.
 
 ### Expiração
 
-- Cada status possui um tempo de vida curto (ex: 1 a 3 horas)
+- Cada status possui um tempo de vida curto (5 horas — definido por `STATUS_DURATION_HOURS = 5`)
 - Após expiração:
   - o status é desativado
   - contadores são resetados

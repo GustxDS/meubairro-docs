@@ -1,6 +1,8 @@
 ---
 name: Frontend Components and Navigation
 description: Use when building screens, components, navigation flows, or any UI element in Meu Bairro (React Native + Expo Router + NativeWind)
+tags: [spec, frontend, ui, components, navigation, react-native, nativewind, react-query]
+aliases: [Frontend UI, UI Spec, Frontend Components Spec]
 ---
 
 # Frontend Components and Navigation — Meu Bairro

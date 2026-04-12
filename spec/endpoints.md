@@ -1,3 +1,8 @@
+---
+tags: [spec, api, endpoints, rest, backend]
+aliases: [API Endpoints, Endpoints, REST API]
+---
+
 # Endpoints Specification — Meu Bairro API
 
 ## 1. Visão Geral

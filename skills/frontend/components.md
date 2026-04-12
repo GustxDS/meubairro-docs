@@ -1,6 +1,8 @@
 ---
 name: Frontend Components
 description: How to build reusable React Native components following the Meu Bairro design system (NativeWind + RNR)
+tags: [skill, frontend, components, nativewind, react-native, design-system, how-to]
+aliases: [Frontend Components Skill, Component Skill, UI Skill]
 ---
 
 # Frontend Components — Meu Bairro
@@ -22,18 +24,32 @@ description: How to build reusable React Native components following the Meu Bai
 
 ```
 components/
-├── ui/          # RNR base components (copied from library)
-└── custom/      # Project-specific components
+├── ui/           # RNR base components (copied from library)
+│   └── index.ts  # barrel — re-exports all ui primitives
+├── custom/       # Project-specific components
+│   └── index.ts  # barrel — re-exports all custom components
+└── index.ts      # root barrel — re-exports everything
 ```
 
 - **`ui/`**: Never modify RNR components in-place. If you need custom behavior, wrap them in a custom component.
-- **`custom/`**: All project-specific components go here. Always import base primitives from `../ui/`.
+- **`custom/`**: All project-specific components go here. Import UI primitives from `'../ui'` (relative path).
+
+---
+
+## Import Conventions
+
+| Context | Import pattern | Example |
+|---|---|---|
+| Screen files (`app/`) | Sub-barrel with `@/` alias | `import { Button, Text } from '@/components/ui'` |
+| Screen files (`app/`) | Sub-barrel with `@/` alias | `import { Header, PostCard } from '@/components/custom'` |
+| Custom components (`components/custom/`) | Relative sub-barrel | `import { Text } from '../ui'` |
+| Sibling custom imports | Direct relative path | `import { ExpirationBadge } from './expiration-badge'` |
+
+**Important:** Custom components must **never** import from `@/components/custom` — that would be circular (the barrel re-exports them). Always use a direct relative path for sibling imports.
 
 ---
 
 ## Base Components (from RNR — `components/ui/`)
-
-These are pre-built and copied into the project. Use them as building blocks:
 
 | Component      | Variants / Notes                                        |
 |----------------|---------------------------------------------------------|
@@ -41,27 +57,20 @@ These are pre-built and copied into the project. Use them as building blocks:
 | Input          | text, password, textarea                                |
 | Card           | Standard container with padding and rounded corners     |
 | Badge          | Used for categories, roles, types                       |
-| Avatar         | User avatar display                                    |
+| Avatar         | User avatar display                                     |
 | Dialog / Modal | For confirmations and destructive actions               |
-| Select / Picker| Dropdown selection                                     |
+| Select / Picker| Dropdown selection                                      |
 | Tabs           | Tab-based content switching                             |
 
 ---
 
 ## Custom Components (in `components/custom/`)
 
-When creating a new component, follow these patterns:
-
 ### StatusCard
 
 Card for the real-time neighborhood status feature.
 
 ```tsx
-// components/custom/StatusCard.tsx
-import { Card } from '~/components/ui/card';
-import { Button } from '~/components/ui/button';
-import { Badge } from '~/components/ui/badge';
-
 interface StatusCardProps {
   type: 'falta_agua' | 'falta_energia' | 'barulho_excessivo' | 'coleta_lixo';
   totalConfirmations: number;
@@ -97,7 +106,6 @@ interface PostCardProps {
   createdAt: string;
   expiresAt: string;
   contact?: string;
-  // Moderation
   canDelete?: boolean;
   onDelete?: () => void;
 }
@@ -106,9 +114,8 @@ interface PostCardProps {
 **Rules:**
 - Truncate description with "ver mais" link
 - Show category/type as a colored Badge
-- Show author email
-- Show creation date
-- Show remaining time until expiration via `ExpirationBadge`
+- Show author email and creation date
+- Show remaining time via `ExpirationBadge`
 - Show image if present
 - If `type = negocio`, show `WhatsAppButton` at the bottom
 
@@ -145,10 +152,9 @@ interface ExpirationBadgeProps {
 ```
 
 **Rules:**
-- Calculate remaining time from `now` to `expiresAt`
-- Format as: "Xh restantes", "Xmin restantes", "X dias restantes"
-- Use amber color when < 1 hour remaining
-- Use red color when expired
+- Format: "Xh restantes", "Xmin restantes", "X dias restantes"
+- Amber color when < 1 hour remaining
+- Red color when expired
 
 ---
 
@@ -169,21 +175,19 @@ interface MemberRowProps {
 
 **RBAC visibility rules (frontend only reflects, backend enforces):**
 
-| Action                 | Admin can do | Superadmin can do |
-|------------------------|:------------:|:-----------------:|
-| See members            | ✓            | ✓                 |
-| Approve join requests  | ✓            | ✓                 |
-| Remove member          | ✓            | ✓                 |
-| Promote to admin       | ✓            | ✓                 |
-| Demote admin           | ✗            | ✓                 |
-| Remove admin           | ✗            | ✓                 |
-| Transfer superadmin    | ✗            | ✓                 |
+| Action                 | Admin | Superadmin |
+|------------------------|:-----:|:----------:|
+| See members            | ✓     | ✓          |
+| Approve join requests  | ✓     | ✓          |
+| Remove member          | ✓     | ✓          |
+| Promote to admin       | ✓     | ✓          |
+| Demote admin           | ✗     | ✓          |
+| Remove admin           | ✗     | ✓          |
+| Transfer superadmin    | ✗     | ✓          |
 
 ---
 
 ### EmptyState
-
-Placeholder for empty lists.
 
 ```tsx
 interface EmptyStateProps {
@@ -206,9 +210,7 @@ interface WhatsAppButtonProps {
 }
 ```
 
-**Rules:**
-- Use `Linking.openURL` with WhatsApp deep link
-- Format: `https://wa.me/55${contact}?text=${encodeURIComponent(message)}`
+- Use `Linking.openURL` with: `https://wa.me/55${contact}?text=${encodeURIComponent(message)}`
 
 ---
 
@@ -226,7 +228,7 @@ interface PendingBannerProps {
 
 ### Header
 
-Universal Top Bar Header component.
+Universal top bar.
 
 ```tsx
 interface HeaderProps {
@@ -235,10 +237,6 @@ interface HeaderProps {
   rightElement?: React.ReactNode;
 }
 ```
-
-**Rules:**
-- Used at the top of main tabs instead of inline Text.
-- Takes up full width and uses standard padding.
 
 ---
 
@@ -271,12 +269,12 @@ Warning:       amber-500
 
 ### Visual States
 
-| State      | Style                                         |
-|------------|-----------------------------------------------|
-| Disabled   | `opacity-50`, not interactive                 |
-| Loading    | Skeleton screen or inline spinner             |
-| Error      | Red border + error message below field        |
-| Success    | Check icon + green color                      |
+| State    | Style                             |
+|----------|-----------------------------------|
+| Disabled | `opacity-50`, not interactive     |
+| Loading  | Skeleton screen or inline spinner |
+| Error    | Red border + error message below  |
+| Success  | Check icon + green color          |
 
 ---
 
@@ -293,7 +291,7 @@ Warning:       amber-500
 - **Generic**: Error screen with "Tentar novamente" button
 
 ### Success
-- **Actions**: Toast/Snackbar for confirmations (e.g., "Post criado", "Membro aprovado")
+- **Actions**: Toast/Snackbar (e.g., "Post criado", "Membro aprovado")
 - **Navigation**: Auto-redirect after successful actions
 
 ---
@@ -302,7 +300,7 @@ Warning:       amber-500
 
 1. Create file in `components/custom/YourComponent.tsx`
 2. Define a TypeScript interface for all props
-3. Import base primitives from `~/components/ui/`
+3. Import base primitives from `'../ui'` (relative sub-barrel)
 4. Use NativeWind classes (Tailwind) for all styling
 5. Follow the color palette and spacing conventions above
 6. Handle all visual states (loading, error, disabled, empty)

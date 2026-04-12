@@ -1,3 +1,8 @@
+---
+tags: [spec, architecture, tech-stack, react-native, expo, nodejs, postgresql, drizzle]
+aliases: [Architecture, Tech Stack, Architecture Spec]
+---
+
 # Architecture Specification — Meu Bairro
 
 ## 1. Visão Geral

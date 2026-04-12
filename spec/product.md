@@ -1,3 +1,8 @@
+---
+tags: [spec, product, vision, mvp]
+aliases: [Product Vision, Product Spec]
+---
+
 # Product Specification — Meu Bairro
 
 ## 1. Visão Geral

@@ -1,3 +1,8 @@
+---
+tags: [plan, refactor, bugs, backend]
+aliases: [Problems, Refactoring Plan, Bug Fixes]
+---
+
 # Plano de Refatoração e Correções
 
 Este plano detalha como endereçaremos os 7 pontos levantados sobre validações faltantes, duplicação de código, performance e melhorias no schema.

@@ -1,3 +1,8 @@
+---
+tags: [spec, posts, avisos, negocios, content, expiration]
+aliases: [Posts, Avisos, Negócios, Posts Spec]
+---
+
 # Posts Specification
 
 ## 1. Visão Geral

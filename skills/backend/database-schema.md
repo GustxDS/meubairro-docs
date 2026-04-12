@@ -1,6 +1,8 @@
 ---
 name: Database Schema
 description: Use when adding new tables, modifying existing columns, writing Drizzle queries, running migrations, or understanding the data model of Meu Bairro
+tags: [skill, database, schema, drizzle, postgresql, migrations, how-to]
+aliases: [Database Skill, DB Skill, Schema Skill]
 ---
 
 # Database Schema — Meu Bairro
@@ -271,12 +273,9 @@ export const yourTable = pgTable('your_table', {
 ### 2. Generate and Apply Migration
 
 ```bash
-# Generate migration file
-npx drizzle-kit generate
-
-# Apply to DB
-npx drizzle-kit push        # development
-npx drizzle-kit migrate     # production
+npx drizzle-kit generate   # generate migration file
+npx drizzle-kit push       # development
+npx drizzle-kit migrate    # production
 ```
 
 ---
