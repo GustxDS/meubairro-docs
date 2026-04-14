@@ -22,8 +22,8 @@ Silent push notifications via Expo Server SDK. Fire-and-forget — pushes enhanc
 Expo Push Service (proxy)
         ↑
    push.service.ts              ← builds + sends messages
-        ↑
-   cron.service.ts              ← detects expired statuses
+        ↑                       ↓
+   cron.service.ts              user_notifications table  ← in-app history
         ↑
   device.service.ts             ← resolves tokens by neighborhood
         ↑
@@ -99,6 +99,30 @@ INNER JOIN neighborhood_members ON user_devices.user_id = neighborhood_members.u
 WHERE neighborhood_members.neighborhood_id = ?
   AND neighborhood_members.deleted_at IS NULL;
 ```
+
+---
+
+## Notification Persistence
+
+When `sendToNeighborhood` sends push notifications, it also inserts a record into the `user_notifications` table for each recipient. This provides in-app notification history that users can view even if they missed the push.
+
+```ts
+// Inside pushService.sendToNeighborhood:
+// For each member in the neighborhood, insert a notification record
+await db.insert(userNotifications).values(
+  members.map(member => ({
+    user_id: member.user_id,
+    action: data.action,
+    title: data.title ?? null,
+    body: data.body ?? null,
+    data: { ...data },
+  }))
+);
+```
+
+**Endpoints:**
+- `GET /api/notifications` — returns last 50 notifications for the authenticated user
+- `PATCH /api/notifications/read-all` — marks all unread notifications as read (`read_at = now()`)
 
 ---
 

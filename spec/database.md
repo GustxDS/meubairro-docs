@@ -7,7 +7,7 @@ aliases: [Database Schema, Database Spec, DB Schema]
 
 ## 1. Visão Geral
 
-Schema do banco de dados PostgreSQL (hospedado no Neon Serverless), modelado e conectado via Drizzle ORM. Todas as tabelas utilizam UUID como chave primária e timestamps para controle de criação/atualização. As tabelas são exportadas ativamente através de um objeto no arquivo `schema.ts`.
+Schema do banco de dados PostgreSQL (hospedado no Neon Serverless), modelado e conectado via Drizzle ORM. Todas as 10 tabelas utilizam UUID como chave primária e timestamps para controle de criação/atualização. As tabelas são exportadas ativamente através de um objeto no arquivo `schema.ts`.
 
 ---
 
@@ -31,6 +31,7 @@ Armazena dados de autenticação dos usuários.
 |--------------|-------------|-------------------------|
 | id           | uuid        | PK, default gen         |
 | email        | varchar     | UNIQUE, NOT NULL        |
+| name         | varchar(100)| NOT NULL                |
 | password     | varchar     | NOT NULL (hash bcrypt)  |
 | created_at   | timestamp   | NOT NULL, default now() |
 | deleted_at   | timestamp   | NULL                    |
@@ -182,6 +183,49 @@ Mantém a sessão segura e renovável sem expiração forçada brusca.
 
 ---
 
+### 3.9 user_devices
+
+Tokens de push notification (Expo) por dispositivo.
+
+| Coluna           | Tipo        | Constraints                     |
+|------------------|-------------|---------------------------------|
+| id               | uuid        | PK, default gen                 |
+| user_id          | uuid        | FK → users.id, NOT NULL CASCADE |
+| expo_push_token  | varchar(200)| UNIQUE, NOT NULL                |
+| platform         | varchar(10) | NOT NULL (ios/android)          |
+| last_seen_at     | timestamp   | NOT NULL, default now()         |
+| created_at       | timestamp   | NOT NULL, default now()         |
+
+**Regras:**
+- `expo_push_token` é UNIQUE globalmente
+- Hard delete no logout ou erro `DeviceNotRegistered` do Expo
+- `last_seen_at` atualizado em cada upsert do token
+
+---
+
+### 3.10 user_notifications
+
+Histórico de notificações in-app por usuário.
+
+| Coluna     | Tipo        | Constraints                     |
+|------------|-------------|---------------------------------|
+| id         | uuid        | PK, default gen                 |
+| user_id    | uuid        | FK → users.id, NOT NULL CASCADE |
+| action     | varchar(30) | NOT NULL (POST_CREATED/STATUS_EXPIRED) |
+| title      | varchar(255)| NULL                            |
+| body       | text        | NULL                            |
+| data       | jsonb       | NULL ({ postType, statusType, neighborhoodId }) |
+| read_at    | timestamp   | NULL                            |
+| created_at | timestamp   | NOT NULL, default now()         |
+
+**Índices:** Índice em `(user_id, created_at)`
+
+**Regras:**
+- Criada automaticamente pelo `pushService.sendToNeighborhood()` ao enviar push
+- `read_at` é preenchido em batch via `PATCH /api/notifications/read-all`
+
+---
+
 ## 4. Diagrama de Relacionamentos
 
 ```
@@ -196,6 +240,10 @@ users
   ├──< status_confirmations     │
   │         │                   │
   │         └──> statuses >─────┘
+  │
+  ├──< user_devices
+  │
+  ├──< user_notifications
   │
 ```
 
@@ -231,6 +279,7 @@ type JoinRequestStatus = "pendente" | "aprovado" | "rejeitado";
 ### Cascade
 
 - Deletar `neighborhood` → remove todos os `neighborhood_members`, `posts`, `statuses`, `join_requests` associados
+- Deletar `user` → remove `neighborhood_members`, `posts`, `status_confirmations`, `refresh_tokens`, `user_devices`, `user_notifications` associados
 - Deletar `status` → remove todos os `status_confirmations` associados
 
 ---
@@ -254,7 +303,6 @@ type JoinRequestStatus = "pendente" | "aprovado" | "rejeitado";
 
 ## 8. Possíveis Evoluções Futuras
 
-- Tabela `notifications` para notificações push
 - Campo `avatar_url` em `users`
 - Tabela `reports` para sistema de denúncias
 - Suporte a múltiplas imagens por post (tabela `post_images`)

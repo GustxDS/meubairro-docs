@@ -41,7 +41,7 @@ Content
   [[spec/posts|Posts (Avisos & Negócios)]] | [[spec/realtime|Real-time Status]]
          ↓
 Data & API
-  [[spec/database|Database Schema]] | [[spec/endpoints|API Endpoints (23)]]
+  [[spec/database|Database Schema]] | [[spec/endpoints|API Endpoints (32)]]
          ↓
 Frontend
   [[spec/ui|Frontend UI & React Query Patterns]]

@@ -16,7 +16,7 @@ Email + password authentication with JWT session management. All auth logic live
 ## Registration Flow
 
 ```
-1. User sends email + password
+1. User sends name, email + password
 2. Validate: email format, uniqueness, password strength (Zod)
 3. Hash password with bcrypt
 4. Insert into `users` table
@@ -31,7 +31,7 @@ Email + password authentication with JWT session management. All auth logic live
 ```json
 {
   "data": {
-    "user": { "id": "uuid", "email": "user@email.com" },
+    "user": { "id": "uuid", "name": "João", "email": "user@email.com" },
     "token": "jwt-token",
     "refresh_token": "refresh-token-string"
   }

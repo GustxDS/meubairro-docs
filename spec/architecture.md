@@ -183,6 +183,8 @@ meubairro-backend/
 │   │   ├── posts.ts
 │   │   ├── status.ts
 │   │   ├── members.ts
+│   │   ├── devices.ts           # Push token management
+│   │   ├── notifications.ts     # In-app notification history
 │   │   └── uploads.ts           # Upload de imagens
 │   │
 │   ├── middleware/               # Middlewares (auth, validação)
@@ -238,7 +240,8 @@ meubairro-backend/
 │              PostgreSQL                  │
 │  users, neighborhoods, posts, status,    │
 │  confirmations, join_requests,           │
-│  user_devices, refresh_tokens            │
+│  user_devices, user_notifications,       │
+│  refresh_tokens                          │
 └──────────────────────────────────────────┘
 
   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐

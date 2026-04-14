@@ -49,6 +49,7 @@ src/db/
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
   password: varchar('password', { length: 255 }).notNull(), // bcrypt hash
   created_at: timestamp('created_at').defaultNow().notNull(),
   deleted_at: timestamp('deleted_at'),
@@ -231,6 +232,32 @@ export const userDevices = pgTable('user_devices', {
 
 ---
 
+### `user_notifications`
+
+```ts
+export const userNotifications = pgTable('user_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  user_id: uuid('user_id').notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  action: varchar('action', { length: 30 }).notNull(), // POST_CREATED | STATUS_EXPIRED
+  title: varchar('title', { length: 255 }),
+  body: text('body'),
+  data: jsonb('data'), // { postType, statusType, neighborhoodId }
+  read_at: timestamp('read_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userNotificationsUserIdx: index('user_notifications_user_idx')
+    .on(table.user_id, table.created_at),
+}));
+```
+
+**Rules:**
+- Created automatically by `pushService.sendToNeighborhood()` when sending push
+- `read_at` is filled in batch via `PATCH /api/notifications/read-all`
+- `ON DELETE CASCADE` on `user_id`
+
+---
+
 ## Type Reference
 
 ```ts
@@ -250,7 +277,7 @@ type Platform = "ios" | "android";
 | When deleting...  | Also removes...                                                    |
 |-------------------|--------------------------------------------------------------------|
 | `neighborhood`    | All members, posts, statuses, confirmations, join_requests         |
-| `user`            | Their membership, posts, confirmations, refresh_tokens, devices    |
+| `user`            | Their membership, posts, confirmations, refresh_tokens, devices, notifications |
 | `status`          | All status_confirmations                                           |
 
 ---

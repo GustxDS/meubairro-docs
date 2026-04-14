@@ -285,6 +285,7 @@ await db.update(neighborhoodMembers).set({ role: 'superadmin' }).where(eq(...tar
 | POST   | /api/auth/register              | Public      |
 | POST   | /api/auth/login                 | Public      |
 | POST   | /api/auth/refresh               | Public      |
+| POST   | /api/auth/logout                | Auth        |
 | GET    | /api/auth/me                    | Auth        |
 | POST   | /api/neighborhoods              | Member      |
 | GET    | /api/neighborhoods/current      | Member      |
@@ -301,12 +302,15 @@ await db.update(neighborhoodMembers).set({ role: 'superadmin' }).where(eq(...tar
 | POST   | /api/members/leave              | Member      |
 | GET    | /api/posts/notices              | Member      |
 | POST   | /api/posts/notices              | Member      |
-| DELETE | /api/posts/notices/:id          | Admin+      |
+| DELETE | /api/posts/notices/:id          | Member (author) or Admin+ |
 | GET    | /api/posts/business             | Member      |
 | POST   | /api/posts/business             | Member      |
-| DELETE | /api/posts/business/:id         | Admin+      |
+| DELETE | /api/posts/business/:id         | Member (author) or Admin+ |
 | POST   | /api/uploads                    | Member      |
 | GET    | /api/status                     | Member      |
 | POST   | /api/status/:type/confirm       | Member      |
 | DELETE | /api/status/:type/confirm       | Member      |
-| POST   | /api/devices/token              | Member      |
+| POST   | /api/devices/token              | Auth        |
+| DELETE | /api/devices/token              | Auth        |
+| GET    | /api/notifications              | Auth        |
+| PATCH  | /api/notifications/read-all     | Auth        |

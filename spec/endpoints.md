@@ -33,6 +33,7 @@ Cadastro de novo usuário.
 
 | Campo    | Tipo   | Obrigatório |
 |----------|--------|-------------|
+| name     | string | ✓           |
 | email    | string | ✓           |
 | password | string | ✓           |
 
@@ -41,8 +42,9 @@ Cadastro de novo usuário.
 ```json
 {
   "data": {
-    "user": { "id": "uuid", "email": "user@email.com" },
-    "token": "jwt-token"
+    "user": { "id": "uuid", "name": "João", "email": "user@email.com" },
+    "token": "jwt-token",
+    "refresh_token": "refresh-token-string"
   }
 }
 ```
@@ -65,13 +67,50 @@ Login de usuário existente.
 ```json
 {
   "data": {
-    "user": { "id": "uuid", "email": "user@email.com" },
-    "token": "jwt-token"
+    "user": { "id": "uuid", "name": "João", "email": "user@email.com" },
+    "token": "jwt-token",
+    "refresh_token": "refresh-token-string"
   }
 }
 ```
 
 **Erros:** 400 (credenciais inválidas)
+
+---
+
+### [Public] POST `/api/auth/refresh`
+
+Renova o token de acesso usando o refresh token.
+
+| Campo         | Tipo   | Obrigatório |
+|---------------|--------|-------------|
+| refresh_token | string | ✓           |
+
+**Resposta (200):**
+
+```json
+{
+  "data": {
+    "token": "new-jwt-token"
+  }
+}
+```
+
+**Erros:** 400 (token inválido ou expirado)
+
+---
+
+### [Auth] POST `/api/auth/logout`
+
+Revoga o refresh token e encerra a sessão.
+
+| Campo         | Tipo   | Obrigatório |
+|---------------|--------|-------------|
+| refresh_token | string | ✓           |
+
+**Resposta (200):** `{ "message": "Logout realizado com sucesso" }`
+
+**Erros:** 400 (token inválido)
 
 ---
 
@@ -354,11 +393,13 @@ Criar um aviso.
 
 ---
 
-### [Auth: Admin] DELETE `/api/posts/notices/:id`
+### [Auth: Member] DELETE `/api/posts/notices/:id`
 
-Remover um aviso (moderação).
+Remover um aviso. O autor pode remover o próprio aviso; admins e superadmins podem remover qualquer aviso.
 
 **Resposta (200):** `{ "message": "Aviso removido" }`
+
+**Erros:** 403 (sem permissão — não é autor nem admin+)
 
 ---
 
@@ -408,11 +449,13 @@ Criar um negócio.
 
 ---
 
-### [Auth: Admin] DELETE `/api/posts/business/:id`
+### [Auth: Member] DELETE `/api/posts/business/:id`
 
-Remover um negócio (moderação).
+Remover um negócio. O autor pode remover o próprio negócio; admins e superadmins podem remover qualquer negócio.
 
 **Resposta (200):** `{ "message": "Negócio removido" }`
+
+**Erros:** 403 (sem permissão — não é autor nem admin+)
 
 ---
 
@@ -515,32 +558,100 @@ Remover confirmação do usuário.
 
 ---
 
-## 11. Resumo de Endpoints
+## 11. Devices (Push Tokens)
 
-| Método | Endpoint                          | Acesso | Descrição                  |
-|--------|-----------------------------------|--------|----------------------------|
-| POST   | /api/auth/register                | [Public]     | Cadastro                   |
-| POST   | /api/auth/login                   | [Public]     | Login                      |
-| GET    | /api/auth/me                      | [Auth]     | Dados do usuário           |
-| POST   | /api/neighborhoods                | [Auth: Member]   | Criar bairro               |
-| GET    | /api/neighborhoods/current        | [Auth: Member]   | Dados do bairro            |
-| DELETE | /api/neighborhoods/current        | [Auth: Superadmin]   | Deletar bairro             |
-| POST   | /api/neighborhoods/join/code      | [Auth: Member]   | Solicitar entrada (código) |
-| POST   | /api/neighborhoods/join/link/:t   | [Auth: Member]   | Entrar via link            |
-| GET    | /api/join-requests                | [Auth: Admin]   | Listar solicitações        |
-| PUT    | /api/join-requests/:id/approve    | [Auth: Admin]   | Aprovar solicitação        |
-| PUT    | /api/join-requests/:id/reject     | [Auth: Admin]   | Rejeitar solicitação       |
-| GET    | /api/members                      | [Auth: Admin]   | Listar membros             |
-| PUT    | /api/members/:id/role             | [Auth: Admin]   | Alterar role               |
-| DELETE | /api/members/:id                  | [Auth: Admin]   | Remover membro             |
-| POST   | /api/members/leave                | [Auth: Member]   | Sair do bairro             |
-| GET    | /api/posts/notices                | [Auth: Member]   | Listar avisos              |
-| POST   | /api/posts/notices                | [Auth: Member]   | Criar aviso                |
-| DELETE | /api/posts/notices/:id            | [Auth: Admin]   | Remover aviso              |
-| GET    | /api/posts/business               | [Auth: Member]   | Listar negócios            |
-| POST   | /api/posts/business               | [Auth: Member]   | Criar negócio              |
-| DELETE | /api/posts/business/:id           | [Auth: Admin]   | Remover negócio            |
-| POST   | /api/uploads                      | [Auth: Member]   | Upload de imagem           |
-| GET    | /api/status                       | [Auth: Member]   | Listar status              |
-| POST   | /api/status/:type/confirm         | [Auth: Member]   | Confirmar status           |
-| DELETE | /api/status/:type/confirm         | [Auth: Member]   | Remover confirmação        |
+### [Auth] POST `/api/devices/token`
+
+Registra o Expo push token do dispositivo. Faz upsert pelo token (atualiza `user_id`, `platform` e `last_seen_at` se já existir).
+
+| Campo          | Tipo   | Obrigatório |
+|----------------|--------|-------------|
+| expoPushToken  | string | ✓           |
+| platform       | string | ✓ (ios/android) |
+
+**Resposta (201):** `{ "message": "Token registrado com sucesso" }`
+
+---
+
+### [Auth] DELETE `/api/devices/token`
+
+Remove o push token do dispositivo. Chamado no logout.
+
+| Campo          | Tipo   | Obrigatório |
+|----------------|--------|-------------|
+| expoPushToken  | string | ✗           |
+
+**Resposta (200):** `{ "message": "Token removido com sucesso" }`
+
+---
+
+## 12. Notificações
+
+### [Auth] GET `/api/notifications`
+
+Retorna as últimas 50 notificações do usuário autenticado, ordenadas por mais recentes.
+
+**Resposta (200):**
+
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "action": "POST_CREATED",
+      "title": "Novo Aviso",
+      "body": "Rua interditada amanhã",
+      "data": { "postType": "aviso", "neighborhoodId": "uuid" },
+      "read_at": "timestamp | null",
+      "created_at": "timestamp"
+    }
+  ]
+}
+```
+
+---
+
+### [Auth] PATCH `/api/notifications/read-all`
+
+Marca todas as notificações não lidas do usuário como lidas (`read_at = now()`).
+
+**Resposta (200):** `{ "message": "Notificações marcadas como lidas" }`
+
+---
+
+## 13. Resumo de Endpoints
+
+| Método | Endpoint                                      | Acesso             | Descrição                  |
+|--------|-----------------------------------------------|--------------------|-----------------------------|
+| POST   | /api/auth/register                            | [Public]           | Cadastro                   |
+| POST   | /api/auth/login                               | [Public]           | Login                      |
+| POST   | /api/auth/refresh                             | [Public]           | Renovar token              |
+| POST   | /api/auth/logout                              | [Auth]             | Logout (revoga refresh)    |
+| GET    | /api/auth/me                                  | [Auth]             | Dados do usuário           |
+| POST   | /api/neighborhoods                            | [Auth]             | Criar bairro               |
+| GET    | /api/neighborhoods/current                    | [Auth: Member]     | Dados do bairro            |
+| DELETE | /api/neighborhoods/current                    | [Auth: Superadmin] | Deletar bairro             |
+| POST   | /api/neighborhoods/join/code                  | [Auth]             | Solicitar entrada (código) |
+| POST   | /api/neighborhoods/join/link/:t               | [Auth]             | Entrar via link            |
+| DELETE | /api/neighborhoods/join                       | [Auth]             | Cancelar solicitação       |
+| GET    | /api/neighborhoods/join-requests              | [Auth: Admin]      | Listar solicitações        |
+| PUT    | /api/neighborhoods/join-requests/:id/approve  | [Auth: Admin]      | Aprovar solicitação        |
+| PUT    | /api/neighborhoods/join-requests/:id/reject   | [Auth: Admin]      | Rejeitar solicitação       |
+| GET    | /api/members                                  | [Auth: Admin]      | Listar membros             |
+| PUT    | /api/members/:id/role                         | [Auth: Admin]      | Alterar role               |
+| DELETE | /api/members/:id                              | [Auth: Admin]      | Remover membro             |
+| POST   | /api/members/leave                            | [Auth: Member]     | Sair do bairro             |
+| GET    | /api/posts/notices                            | [Auth: Member]     | Listar avisos              |
+| POST   | /api/posts/notices                            | [Auth: Member]     | Criar aviso                |
+| DELETE | /api/posts/notices/:id                        | [Auth: Member]     | Remover aviso (autor/admin+) |
+| GET    | /api/posts/business                           | [Auth: Member]     | Listar negócios            |
+| POST   | /api/posts/business                           | [Auth: Member]     | Criar negócio              |
+| DELETE | /api/posts/business/:id                       | [Auth: Member]     | Remover negócio (autor/admin+) |
+| POST   | /api/uploads                                  | [Auth: Member]     | Upload de imagem           |
+| GET    | /api/status                                   | [Auth: Member]     | Listar status              |
+| POST   | /api/status/:type/confirm                     | [Auth: Member]     | Confirmar status           |
+| DELETE | /api/status/:type/confirm                     | [Auth: Member]     | Remover confirmação        |
+| POST   | /api/devices/token                            | [Auth]             | Registrar push token       |
+| DELETE | /api/devices/token                            | [Auth]             | Remover push token         |
+| GET    | /api/notifications                            | [Auth]             | Listar notificações        |
+| PATCH  | /api/notifications/read-all                   | [Auth]             | Marcar todas como lidas    |
